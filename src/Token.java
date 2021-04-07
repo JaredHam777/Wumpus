@@ -8,7 +8,7 @@ public class Token {
 	
 	
 	public enum Type	{
-		Symbol("\\s*[MBPS]_[1-4]_[1-4]"), OpenParentheses("\\("), CloseParentheses("\\)"), 
+		Symbol("[MBPS]_[1-4]_[1-4]"), OpenParentheses("\\("), CloseParentheses("\\)"), 
 		Not("not"), If("if"), Iff("iff"), And("and"), Or("or"), Xor("xor");
 
 		Type(String value){

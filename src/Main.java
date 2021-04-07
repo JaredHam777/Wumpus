@@ -35,6 +35,8 @@ public class Main {
 		Scanner sc = new Scanner(file);			
 		String line;		
 		
+		
+		
 		while(sc.hasNextLine())	{
 			line = sc.nextLine();
 			statementTokens = Token.parseInput(line);			
