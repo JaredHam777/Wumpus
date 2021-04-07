@@ -85,7 +85,8 @@ public class Expression {
 			this.children.remove(0);
 			for(int i=0; i<childrenToAdd.size(); i++)	{
 				Expression notExp = new Expression();
-				childrenToAdd.get(i).operation = OpType.Or;
+				notExp.children = new ArrayList<Expression>();
+				this.operation = OpType.Or;
 				notExp.children.add(childrenToAdd.get(i));
 				notExp.operation = OpType.Not;
 				this.children.add(notExp);
@@ -96,10 +97,12 @@ public class Expression {
 			this.children.remove(0);
 			for(int i=0; i<childrenToAdd.size(); i++)	{
 				Expression notExp = new Expression();
-				childrenToAdd.get(i).operation = OpType.Or;
+				notExp.children = new ArrayList<Expression>();
+				this.operation = OpType.And;
 				notExp.children.add(childrenToAdd.get(i));
 				notExp.operation = OpType.Not;
 				this.children.add(notExp);
+				
 			}
 			return true;
 		default:
@@ -149,10 +152,99 @@ public class Expression {
 		return false;
 	}
 	
+	private Boolean IfExpression()	{
+		if(this.operation != OpType.If) {return false;}
+		this.operation = OpType.Or;
+		Expression A = this.children.get(0);
+		Expression B = this.children.get(1);
+		Expression notExp = new Expression();
+		notExp.children = new ArrayList<Expression>();
+		notExp.operation = OpType.Not;
+		notExp.children.add(A);
+		this.children.remove(A);
+		this.children.remove(B);
+		
+		this.children.add(notExp);
+		this.children.add(B);
+		return true;
+		
+	}
+	
+	private Boolean IffExpression()	{
+		if(this.operation != OpType.Iff) {return false;}
+		Expression orExp = new Expression();
+		orExp.operation = OpType.Or;
+		orExp.children = new ArrayList<Expression>();
+		
+		Expression and1Exp = new Expression();
+		and1Exp.operation = OpType.And;
+		and1Exp.children = new ArrayList<Expression>();
+		
+		Expression and2Exp = new Expression();
+		and2Exp.operation = OpType.And;
+		and2Exp.children = new ArrayList<Expression>();
+		
+		Expression not1Exp = new Expression();
+		not1Exp.operation = OpType.Not;
+		not1Exp.children = new ArrayList<Expression>();
+		
+		Expression not2Exp = new Expression();
+		not2Exp.operation = OpType.Not;
+		not2Exp.children = new ArrayList<Expression>();	
+		
+		and1Exp.children.add(this.children.get(0));
+		and1Exp.children.add(this.children.get(1));
+		
+		not1Exp.children.add(this.children.get(0));
+		not2Exp.children.add(this.children.get(1));
+		
+		and2Exp.children.add(not1Exp);
+		and2Exp.children.add(not2Exp);
+		
+		orExp.children.add(and1Exp);
+		orExp.children.add(and2Exp);
+		
+		this.children = orExp.children;
+		this.operation = orExp.operation;
+		
+		return true;
+		
+	}
+	
+	private Boolean XorExpression()	{
+		if(this.operation!=OpType.Xor) {return false;}
+		
+		ArrayList<Expression> andStatements = new ArrayList<Expression>();
+		for(int i=0; i<this.children.size(); i++)	{
+			Expression andStatement = new Expression();
+			andStatement.operation = OpType.And;
+			andStatement.children = new ArrayList<Expression>();
+			Expression notExp = new Expression();
+			notExp.children = new ArrayList<Expression>();
+			notExp.operation = OpType.Not;
+			notExp.children.add(this.children.get(i));
+			for(int j=0; j<this.children.size(); j++)	{
+				if(j==i) {
+					andStatement.children.add(notExp);
+					}	else	{
+					andStatement.children.add(this.children.get(j));
+				}
+			}
+			andStatements.add(andStatement);
+		}
+		this.operation = OpType.Or;
+		this.children = new ArrayList<Expression>();
+		this.children.addAll(andStatements);
+		return true;
+	}
+	
 	public Boolean resolve() {
 		if(this.children==null) {return false;}
 		
 		Boolean resolveStepOccurred = 
+		IfExpression() ||
+		IffExpression() ||
+		XorExpression() ||
 		Associative() ||
 		NotExpression() ||
 		OrExpression() ||
@@ -196,6 +288,21 @@ public class Expression {
 			}
 			return e;
 		}
+	}
+	
+	private String expressionToText()	{
+		if(this.symbol!=null) {return " " + this.symbol.name;}
+		String returnStr = " (" + this.operation.value;
+		for(Expression child : this.children) {
+			returnStr += child.expressionToText();
+		}
+		returnStr += ")";
+		return returnStr;
+	}
+	
+	public String expressionText()	{
+		String text = expressionToText();
+		return text.substring(1, text.length());
 	}
 
 	

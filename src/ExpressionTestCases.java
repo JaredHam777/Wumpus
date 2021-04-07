@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 import org.junit.Test;
 
+
 import junit.framework.TestCase;
 
 public class ExpressionTestCases extends TestCase {
@@ -88,11 +89,56 @@ public class ExpressionTestCases extends TestCase {
 	}
 	
 	@Test
-	public testDeMorgan()	{
+	public void testDeMorgan()	{
 		String sentence = "(not (or M_1_1 M_1_2))";
 		ArrayList<Token> tokens = Token.parseInput(sentence);
 		Expression exp = new Expression();
 		exp = Expression.buildExpression(tokens);
 		exp.resolve();
+		
+		assert(exp.operation == Expression.OpType.And);
+		assert(exp.children.size() == 2);
+		for(Expression child : exp.children) {
+			assert(child.operation == Expression.OpType.Not);
+			assert(child.children.size()==1 && child.children.get(0).symbol!=null);
+		}
+		
+		
+		sentence = "(not (and M_1_1 M_1_2))";
+		tokens = Token.parseInput(sentence);
+		exp = new Expression();
+		exp = Expression.buildExpression(tokens);
+		exp.resolve();
+		
+		assert(exp.operation == Expression.OpType.Or);
+		assert(exp.children.size() == 2);
+		for(Expression child : exp.children) {
+			assert(child.operation == Expression.OpType.Not);
+			assert(child.children.size()==1 && child.children.get(0).symbol!=null);
+		}
+		
+		System.out.println(exp.expressionText());
+	}
+	
+	@Test
+	public void testIf()	{
+		String sentence = "(if M_1_1 M_1_2)";
+		ArrayList<Token> tokens = Token.parseInput(sentence);
+		Expression exp = new Expression();
+		exp = Expression.buildExpression(tokens);
+		exp.resolve();
+		System.out.println(exp.expressionText() + " should be equivilent to " + sentence);
+		assert(exp.expressionText().equals("(or (not M_1_1) M_1_2)"));
+	}
+	
+	@Test
+	public void testIff()	{
+		String sentence = "(iff M_1_1 M_1_2)";
+		ArrayList<Token> tokens = Token.parseInput(sentence);
+		Expression exp = new Expression();
+		exp = Expression.buildExpression(tokens);
+		exp.resolve();
+		System.out.println(exp.expressionText() + " should be equivilent to " + sentence);
+		//assert(exp.expressionText().equals(""));
 	}
 }

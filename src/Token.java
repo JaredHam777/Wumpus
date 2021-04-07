@@ -9,7 +9,7 @@ public class Token {
 	
 	public enum Type	{
 		Symbol("[MBPS]_[1-4]_[1-4]"), OpenParentheses("\\("), CloseParentheses("\\)"), 
-		Not("not"), If("if"), Iff("iff"), And("and"), Or("or"), Xor("xor");
+		Not("not "), If("if "), Iff("iff "), And("and "), Or("or "), Xor("xor ");
 
 		Type(String value){
 			this.value = value;
