@@ -22,14 +22,7 @@ public class Expression {
 	
 	public Expression() {};
 	public Expression(Token token) {
-		if(Main.symbols.containsKey(token.value))	
-		{
-			this.symbol = Main.symbols.get(token.value);
-		}	
-		else	{
-			Main.symbols.put(token.value, new Symbol(token.value));
-			this.symbol = Main.symbols.get(token.value);
-		}
+		this.symbol = new Symbol(token.value);
 	};
 	
 	private Boolean Associative() {
@@ -325,42 +318,29 @@ public class Expression {
 		
 	}
 	
-	public void firstOrderForm()	{
-		this.resolve();
-		Expression e;
-		if(this.symbol != null) {
-			e = new Expression();
-			e.symbol = this.symbol;
-			this.children = new ArrayList<Expression>();
-			this.operation = OpType.And;
-			this.children.add(e);
-			return;
-		}
-		switch (this.operation) {
-		case And:
-			return;
-		case Not:
-			e = new Expression();
-			e.children = new ArrayList<Expression>();
-			e.operation = OpType.Not;
-			e.children.addAll(this.children);
-			this.children = new ArrayList<Expression>();
-			this.children.add(e);
-			this.operation = OpType.And;
-			return;			
-		case Or:
-			e = new Expression();
-			e.children = new ArrayList<Expression>();
-			e.operation = OpType.Or;
-			e.children.addAll(this.children);
-			this.children = new ArrayList<Expression>();
-			this.children.add(e);
-			this.operation = OpType.And;
-			return;			
-		default:
-						
-		}
+	public String expressionEntails(Expression statement) throws Exception {
+		Expression negatedStatement = new Expression();
+		negatedStatement.operation = OpType.Not;
+		negatedStatement.children = new ArrayList<Expression>();
+		negatedStatement.children.add(statement);
+		negatedStatement.resolve();
+		
+		ArrayList<CNFExpression> KBCNF = CNFExpression.expressionToCNFList(this);
+		ArrayList<CNFExpression> statementCNF = CNFExpression.expressionToCNFList(statement);
+		ArrayList<CNFExpression> negatedStatementCNF = CNFExpression.expressionToCNFList(negatedStatement);
+		
+		System.out.println("knowledge base: ");
+		CNFExpression.printList(KBCNF);
+		
+		CNFExpression.fullyInferFrom(statementCNF, KBCNF);
+		if(CNFExpression.listIsFalseTautology(statementCNF)) {return "definitely false";}
+		
+		CNFExpression.fullyInferFrom(negatedStatementCNF, KBCNF);
+		if(CNFExpression.listIsFalseTautology(negatedStatementCNF)) {return "definitely true";}
+		
+		return "sometimes true, sometimes false";
 	}
+	
 
 	public String entails(Expression statement)	{
 		//if this expression AND -(statement) proves to be a false tautology, then return true
@@ -369,8 +349,8 @@ public class Expression {
 		inverseStatement.children = new ArrayList<Expression>();
 		inverseStatement.children.add(statement);
 		inverseStatement.resolve();
-		inverseStatement.firstOrderForm();
-		statement.firstOrderForm();
+		//inverseStatement.firstOrderForm();
+		//statement.firstOrderForm();
 		
 
 
@@ -425,6 +405,7 @@ public class Expression {
 			
 			if(newDerivedExpressions.size()>0) {
 				statement.children.addAll(newDerivedExpressions);
+				System.out.println("new statement: " + inverseStatement.expressionText());
 				if(statement.isFalseTautology()) {
 					return "definitely false";
 				}
