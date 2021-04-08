@@ -1,8 +1,11 @@
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 
 public class Expression {
 	public static Expression True;
@@ -24,6 +27,26 @@ public class Expression {
 	public Expression(Token token) {
 		this.symbol = new Symbol(token.value);
 	};
+	
+	public static Expression importExpressionFromFile(String path) throws FileNotFoundException {
+		File file = new File(path);
+		Scanner sc = new Scanner(file);			
+		String line;		
+		
+		ArrayList<Token> tokens = new ArrayList<Token>();
+		
+		Expression root = new Expression();
+		root.operation = OpType.And;
+		root.children = new ArrayList<Expression>();
+		
+		while(sc.hasNextLine())	{
+			line = sc.nextLine();
+			tokens = Token.parseInput(line);			
+			root.children.add(Expression.buildExpression(tokens));
+		}
+		sc.close();
+		return root;
+	}
 	
 	private Boolean Associative() {
 		if(this.operation != OpType.And && this.operation != OpType.Or) {return false;}
@@ -75,6 +98,7 @@ public class Expression {
 		switch (this.children.get(0).operation)	{		
 		case And:			
 			childrenToAdd.addAll(this.children.get(0).children);
+			if(childrenToAdd.size()==1) {return false;}
 			this.children.remove(0);
 			for(int i=0; i<childrenToAdd.size(); i++)	{
 				Expression notExp = new Expression();
@@ -87,6 +111,7 @@ public class Expression {
 			return true;
 		case Or:			
 			childrenToAdd.addAll(this.children.get(0).children);
+			if(childrenToAdd.size()==1) {return false;}
 			this.children.remove(0);
 			for(int i=0; i<childrenToAdd.size(); i++)	{
 				Expression notExp = new Expression();
@@ -142,7 +167,28 @@ public class Expression {
 	}
 	
 	private Boolean AndExpression() {
-		return false;
+		if(this.operation!=OpType.And) {return false;}
+		if(this.children.size()==1) {
+			if(this.children.get(0).symbol!=null) {this.symbol = this.children.get(0).symbol; this.operation = null; this.children = null; return true;}
+			this.operation = this.children.get(0).operation;
+			this.children = this.children.get(0).children;			
+			return true;
+		}
+		
+		ArrayList<Expression> gChildrenToAdd = new ArrayList<Expression>();
+		ArrayList<Expression> childrenToRemove = new ArrayList<Expression>();
+		
+		for(Expression child : this.children) {
+			if(child.symbol==null && child.operation == OpType.And)	{
+				gChildrenToAdd.addAll(child.children);
+				childrenToRemove.add(child);
+			}
+		}
+		if(childrenToRemove.size()==0) {return false;}
+		
+		this.children.addAll(gChildrenToAdd);
+		this.children.removeAll(childrenToRemove);
+		return true;
 	}
 	
 	private Boolean IfExpression()	{
@@ -233,17 +279,17 @@ public class Expression {
 	
 	public Boolean resolve() {
 		if(this.children==null) {return false;}
-		
+		System.out.println("exp: " + this.expressionText());
 		Boolean resolveStepOccurred = 
 		IfExpression() ||
 		IffExpression() ||
 		XorExpression() ||
+		AndExpression() ||
 		Associative() ||
 		NotExpression() ||
-		OrExpression() ||
-		AndExpression();		
-		if(this.children==null) {return resolveStepOccurred;}
-		if(resolveStepOccurred) {	
+		OrExpression();				
+		if(this.children==null) {return resolveStepOccurred;}	
+		if(resolveStepOccurred)	{
 			this.resolve();
 			return true;
 		}
@@ -332,13 +378,14 @@ public class Expression {
 		System.out.println("knowledge base: ");
 		CNFExpression.printList(KBCNF);
 		
-		CNFExpression.fullyInferFrom(statementCNF, KBCNF);
-		if(CNFExpression.listIsFalseTautology(statementCNF)) {return "definitely false";}
+		boolean KBEntailsStatement = CNFExpression.statementsContradict(negatedStatementCNF, KBCNF);
+		boolean KBEntailsNegativeStatement = CNFExpression.statementsContradict(statementCNF, KBCNF);	
 		
-		CNFExpression.fullyInferFrom(negatedStatementCNF, KBCNF);
-		if(CNFExpression.listIsFalseTautology(negatedStatementCNF)) {return "definitely true";}
-		
-		return "sometimes true, sometimes false";
+		if(KBEntailsStatement && !KBEntailsNegativeStatement) {return "definitely true";}
+		if(!KBEntailsStatement && KBEntailsNegativeStatement) {return "definitely false";}
+		if(!KBEntailsStatement && !KBEntailsNegativeStatement) {return "possibly true, possibly false";}
+		if(KBEntailsStatement && KBEntailsNegativeStatement) {return "both true and false";}
+		return null;
 	}
 	
 
@@ -596,6 +643,15 @@ public class Expression {
 			if(!isEqual) {return false;}
 		}		
 		return isEqual;
+	}
+	
+	public static Expression combineAnd(Expression e1, Expression e2) {
+		Expression e = new Expression();
+		e.children = new ArrayList<Expression>();
+		e.children.add(e1);
+		e.children.add(e2);
+		e.operation = OpType.And;
+		return e;
 	}
 	
 }

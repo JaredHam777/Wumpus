@@ -224,24 +224,23 @@ public class ExpressionTestCases extends TestCase {
 		
 	}
 	
+
+	
+	
 	@Test
-	public void testEntailsMulti() throws Exception	{
-		String sentence = "(and (xor M_1_4 B_3_4) (if M_4_2 (or B_4_3 B_2_2)) (and (not M_3_1) S_4_1) (not B_2_2) (not (or P_4_2 P_3_3 P_2_4)))";
-		ArrayList<Token> tokens = Token.parseInput(sentence);
-		Expression KB = new Expression();
-		KB = Expression.buildExpression(tokens);
+	public void testWumpusRules1() throws Exception	{
+		Expression wumpusRules = Expression.importExpressionFromFile("data/wumpus_rules.txt");
+		wumpusRules.resolve();
+		Expression additionalKnowledge = Expression.importExpressionFromFile("data/kb1.txt");
+		additionalKnowledge.resolve();
+		Expression KB = Expression.combineAnd(wumpusRules, additionalKnowledge);
 		KB.resolve();
 		
-		sentence = "(or M_1_4 P_4_4)";
-		tokens = Token.parseInput(sentence);
-		Expression statement = new Expression();
-		statement = Expression.buildExpression(tokens);		
-		statement.resolve();	
+		Expression statement = Expression.importExpressionFromFile("data/statement-defi-true-1.txt");
 		
 		String entails = KB.expressionEntails(statement);
-		
+		assert(entails.equals("definitely true"));
 		
 	}
-	
 	
 }

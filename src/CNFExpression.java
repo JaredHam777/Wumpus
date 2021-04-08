@@ -67,8 +67,10 @@ public class CNFExpression {
 		this.symbols.removeAll(symbolsToRemove);
 	}
 	
-	public static void fullyInferFrom(ArrayList<CNFExpression> statements, ArrayList<CNFExpression> KB)	{
+	public static boolean statementsContradict(ArrayList<CNFExpression> statements, ArrayList<CNFExpression> KB)	{
 		CNFExpression.filterOutTrueCNFExp(statements);
+		ArrayList<CNFExpression> allInferred = new ArrayList<CNFExpression>();
+		allInferred.addAll(statements);
 		for(CNFExpression KBStatement : KB) {
 			ArrayList<CNFExpression> inferredExpressions = new ArrayList<CNFExpression>();
 			for(CNFExpression statement : statements) {
@@ -78,10 +80,21 @@ public class CNFExpression {
 				}
 			}
 			CNFExpression.filterOutTrueCNFExp(inferredExpressions);
-			statements.addAll(inferredExpressions);		
-			System.out.println("Statements: ");
-			CNFExpression.printList(statements);
+			//statements.addAll(inferredExpressions);
+			
+			allInferred.addAll(inferredExpressions);
+			
+			if(CNFExpression.listIsFalseTautology(allInferred))	{
+				return true;
+			}
+			//System.out.println("Statements: ");
+			//CNFExpression.printList(statements);
 		}
+		
+		System.out.println("Final Statements: ");
+		CNFExpression.printList(statements);
+		
+		return false;
 	}
 	
 	public static boolean listIsFalseTautology(ArrayList<CNFExpression> expressions) {
