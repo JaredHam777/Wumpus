@@ -306,6 +306,259 @@ public class Expression {
 	}
 
 	
+	
+	public Boolean isFalseTautology()	{
+		ArrayList<Symbol> trueSymbols = new ArrayList<Symbol>();
+		ArrayList<Symbol> falseSymbols = new ArrayList<Symbol>();
+		for(Expression exp : this.children) {
+			if(exp.operation == OpType.And) {continue;}
+			if(exp.operation == OpType.Not) {falseSymbols.add(exp.children.get(0).symbol);}
+			if(exp.symbol != null)	{trueSymbols.add(exp.symbol);}			
+		}
+		ArrayList<Symbol> contradictors = new ArrayList<Symbol>(falseSymbols);
+		contradictors.retainAll(trueSymbols);
+		if(contradictors.size()>0) {
+			return true;
+		}	else	{
+			return false;
+		}
+		
+	}
+	
+	public void firstOrderForm()	{
+		this.resolve();
+		Expression e;
+		if(this.symbol != null) {
+			e = new Expression();
+			e.symbol = this.symbol;
+			this.children = new ArrayList<Expression>();
+			this.operation = OpType.And;
+			this.children.add(e);
+			return;
+		}
+		switch (this.operation) {
+		case And:
+			return;
+		case Not:
+			e = new Expression();
+			e.children = new ArrayList<Expression>();
+			e.operation = OpType.Not;
+			e.children.addAll(this.children);
+			this.children = new ArrayList<Expression>();
+			this.children.add(e);
+			this.operation = OpType.And;
+			return;			
+		case Or:
+			e = new Expression();
+			e.children = new ArrayList<Expression>();
+			e.operation = OpType.Or;
+			e.children.addAll(this.children);
+			this.children = new ArrayList<Expression>();
+			this.children.add(e);
+			this.operation = OpType.And;
+			return;			
+		default:
+						
+		}
+	}
+
+	public String entails(Expression statement)	{
+		//if this expression AND -(statement) proves to be a false tautology, then return true
+		Expression inverseStatement = new Expression();
+		inverseStatement.operation = OpType.Not;
+		inverseStatement.children = new ArrayList<Expression>();
+		inverseStatement.children.add(statement);
+		inverseStatement.resolve();
+		inverseStatement.firstOrderForm();
+		statement.firstOrderForm();
+		
+
+
+		for(int i=0; i<inverseStatement.children.size(); i++)	{
+			Expression s = inverseStatement.children.get(i);			
+			ArrayList<Expression> derivedExpressions = new ArrayList<Expression>();
+			ArrayList<Expression> newDerivedExpressions = new ArrayList<Expression>();
+			if(inverseStatement.isFalseTautology()) {
+				return "definitely true";
+			}
+			
+			derivedExpressions = s.projectStatement(this);
+			
+			//we only want new unique expressions, no duplicates
+			for(Expression child : derivedExpressions)	{
+				if(!Expression.listContains(inverseStatement.children, child)) {
+					newDerivedExpressions.add(child);
+				}	else	{
+					System.out.println("is this unreachable?");
+				}
+			}
+			
+			if(newDerivedExpressions.size()>0) {
+				inverseStatement.children.addAll(newDerivedExpressions);
+				System.out.println("new statement: " + inverseStatement.expressionText());
+				if(inverseStatement.isFalseTautology()) {
+					return "definitely true";
+				}
+			}
+
+
+		}
+		
+		for(int i=0; i<statement.children.size(); i++)	{
+			Expression s = statement.children.get(i);
+			ArrayList<Expression> derivedExpressions = new ArrayList<Expression>();
+			ArrayList<Expression> newDerivedExpressions = new ArrayList<Expression>();
+			if(statement.isFalseTautology()) {
+				return "definitely false";
+			}
+			
+			derivedExpressions = s.projectStatement(this);
+			
+			//we only want new unique expressions, no duplicates
+			for(Expression child : derivedExpressions)	{
+				if(!Expression.listContains(statement.children, child)) {
+					newDerivedExpressions.add(child);
+				}	else	{
+					System.out.println("is this unreachable?");
+				}
+			}
+			
+			if(newDerivedExpressions.size()>0) {
+				statement.children.addAll(newDerivedExpressions);
+				if(statement.isFalseTautology()) {
+					return "definitely false";
+				}
+			}
+
+
+		}
+		return "sometimes true, sometimes false";		
+	}
+	public Expression attemptCombine(Expression A)	{
+		if(this.operation == OpType.Or && A.operation == OpType.Or) {
+			ArrayList<Symbol> falseThisSymbols = new ArrayList<Symbol>();
+			ArrayList<Symbol> trueThisSymbols = new ArrayList<Symbol>();
+			ArrayList<Symbol> falseASymbols = new ArrayList<Symbol>();
+			ArrayList<Symbol> trueASymbols = new ArrayList<Symbol>();
+			
+			for(Expression child : this.children) {
+				if(child.operation==OpType.Not) {falseThisSymbols.add(child.children.get(0).symbol);}else{trueThisSymbols.add(child.symbol);}
+			}
+			for(Expression child : A.children) {
+				if(child.operation==OpType.Not) {falseASymbols.add(child.children.get(0).symbol);}else{trueASymbols.add(child.symbol);}
+			}
+			
+			ArrayList<Symbol> retained1 = new ArrayList<Symbol>(falseThisSymbols);
+			retained1.retainAll(trueASymbols);
+			ArrayList<Symbol> retained2 = new ArrayList<Symbol>(falseASymbols);
+			retained2.retainAll(trueThisSymbols);
+			
+			Expression combinedExpression = new Expression();
+			combinedExpression.children = new ArrayList<Expression>();
+			Symbol commonSymbol=null;
+			if(retained1.size()>0) {commonSymbol = retained1.get(0);}	else
+			if(retained2.size()>0) {commonSymbol = retained2.get(0);}
+			
+			if(commonSymbol!=null) {
+				ArrayList<Symbol> trues = new ArrayList<Symbol>();
+				trues.addAll(trueThisSymbols);
+				trues.addAll(trueASymbols);
+				for(Symbol trueSym : trues) {
+					if(trueSym!=commonSymbol) {
+						Expression e = new Expression();
+						e.symbol = trueSym;
+						combinedExpression.children.add(e);
+					}					
+				}
+				ArrayList<Symbol> falses = new ArrayList<Symbol>();
+				falses.addAll(falseThisSymbols);
+				falses.addAll(falseASymbols);
+				for(Symbol falseSym : falses) {
+					if(falseSym!=commonSymbol) {
+						Expression e = new Expression();
+						e.operation = OpType.Not;
+						Expression child = new Expression();
+						child.symbol = falseSym;
+						e.children = new ArrayList<Expression>();
+						e.children.add(child);						
+						combinedExpression.children.add(e);
+					}
+				}
+			}	else {return null;}
+			combinedExpression.operation = OpType.Or;
+			return combinedExpression;
+			
+		}
+		if((this.operation == OpType.Or && A.operation != OpType.Or) || (this.operation != OpType.Or && A.operation == OpType.Or))	{
+			Expression single;
+			Expression orExp;
+			if(this.operation == OpType.Or) {
+				orExp = this;
+				single = A;
+			}	else	{
+				single = this;
+				orExp = A;
+			}
+			ArrayList<Symbol> falses = new ArrayList<Symbol>();
+			ArrayList<Symbol> trues = new ArrayList<Symbol>();
+			Symbol compareSymbol;
+			for(Expression child : orExp.children) {
+				if(child.operation == OpType.Not) {falses.add(child.children.get(0).symbol);}
+				if(child.symbol!=null) {trues.add(child.symbol);}
+			}
+			ArrayList<Symbol> compareList;
+			if(single.operation==OpType.Not) {compareList = trues; compareSymbol = single.children.get(0).symbol;}	else	{compareList = falses; compareSymbol = single.symbol;}
+			
+			if(!compareList.contains(compareSymbol)) {return null;}
+			ArrayList<Expression> newChildren = new ArrayList<Expression>();
+			newChildren.addAll(orExp.children);
+			for(Expression child : orExp.children) {
+				if(compareList==trues) {
+					if(child.symbol==null) {continue;}
+					if(child.symbol == compareSymbol)	{
+						newChildren.remove(child);						
+					}					
+				}
+				else if(compareList==falses) {
+					if(child.symbol!=null) {continue;}
+					if(child.children.get(0).symbol == compareSymbol)	{
+						newChildren.remove(child);	
+					}
+				}
+			}
+			
+			Expression returnExp = new Expression();			
+			if(newChildren.size()==1) {
+				if(newChildren.get(0).symbol!=null) {
+					returnExp.symbol = newChildren.get(0).symbol;		
+				}	else	{
+					returnExp.symbol = newChildren.get(0).children.get(0).symbol;
+				}
+				
+			}	else	{
+				returnExp.children = newChildren;
+				returnExp.operation = OpType.Or;				
+			}
+			return returnExp;
+			
+		}
+		return null;
+	}
+	
+	public ArrayList<Expression> projectStatement(Expression KB) {
+		ArrayList<Expression> returnExp = new ArrayList<Expression>();
+		for(Expression KBStatement : KB.children) {
+			
+			Expression combined = this.attemptCombine(KBStatement);
+			if(combined!=null )	{
+				if((combined.symbol==null && combined.operation != null && combined.children.size()>0) || combined.symbol!=null)	{
+					returnExp.add(combined);
+				}
+			}
+		}		
+		return returnExp;		
+	}
+	
 	public Boolean solve()	{
 		if(this.symbol!=null) {return this.symbol.value;}
 		switch (this.operation) {
@@ -336,5 +589,32 @@ public class Expression {
 		}
 	}
 	
+	public static boolean listContains(ArrayList<Expression> list, Expression e)	{
+		for(Expression child : list) {
+			if(child.isEqualTo(e)) {return true;}
+		}
+		return false;
+	}
+	
+	public boolean isEqualTo(Object o) {
+		Expression e = (Expression)o;
+		boolean isEqual = true;
+		if((e.symbol == null) ^ (this.symbol == null)) {return false;}
+		if(e.symbol != null && this.symbol != null) {
+			if(this.symbol.name == e.symbol.name) {return true;}	else	{
+				return false;
+			}
+		}
+		//both of these have operations:
+		for(Expression child : e.children)	{
+			isEqual &= Expression.listContains(e.children, child);
+			if(!isEqual) {return false;}
+		}
+		for(Expression child : this.children)	{
+			isEqual &= Expression.listContains(this.children, child);
+			if(!isEqual) {return false;}
+		}		
+		return isEqual;
+	}
 	
 }

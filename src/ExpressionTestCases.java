@@ -139,6 +139,118 @@ public class ExpressionTestCases extends TestCase {
 		exp = Expression.buildExpression(tokens);
 		exp.resolve();
 		System.out.println(exp.expressionText() + " should be equivilent to " + sentence);
-		//assert(exp.expressionText().equals(""));
+		assert(true);
 	}
+	
+	@Test
+	public void testXor()	{
+		String sentence = "(xor M_1_1 M_1_2)";
+		ArrayList<Token> tokens = Token.parseInput(sentence);
+		Expression exp = new Expression();
+		exp = Expression.buildExpression(tokens);
+		exp.resolve();
+		System.out.println(exp.expressionText() + " should be equivilent to " + sentence);
+		assert(true);
+	}
+	
+	@Test
+	public void testFalseTautologyTest()	{
+		String sentence = "(and M_1_1 (not M_1_1))";
+		ArrayList<Token> tokens = Token.parseInput(sentence);
+		Expression exp = new Expression();
+		exp = Expression.buildExpression(tokens);
+		exp.resolve();
+		assert(exp.isFalseTautology());
+		
+		
+	}
+	
+	@Test
+	public void testCombineExpressions()	{
+		String sentence = "M_1_1";
+		ArrayList<Token> tokens = Token.parseInput(sentence);
+		Expression exp1 = new Expression();
+		exp1 = Expression.buildExpression(tokens);
+		exp1.resolve();
+		
+		sentence = "(or (not M_1_1) M_1_2)";
+		tokens = Token.parseInput(sentence);
+		Expression exp2 = new Expression();
+		exp2 = Expression.buildExpression(tokens);
+		System.out.println("Combining...");
+		exp2.resolve();
+		
+		
+		Expression exp3 = exp1.attemptCombine(exp2);
+		
+		assert(exp3.symbol!=null && exp3.symbol.name.equals("M_1_2"));
+		
+		sentence = "(or M_1_3 M_1_1)";
+		tokens = Token.parseInput(sentence);
+		exp1 = new Expression();
+		exp1 = Expression.buildExpression(tokens);
+		exp1.resolve();
+		
+		exp3 = exp1.attemptCombine(exp2);
+		assert(exp3.operation==Expression.OpType.Or && exp3.children.size()==2);
+	}
+	
+	@Test
+	public void testEntails()	{
+		String sentence = "(and M_1_1 (or M_1_2 M_1_1 M_1_3) (or (not M_1_1) M_1_4))";
+		ArrayList<Token> tokens = Token.parseInput(sentence);
+		Expression KB = new Expression();
+		KB = Expression.buildExpression(tokens);
+		KB.resolve();
+		
+		sentence = "M_1_4";
+		tokens = Token.parseInput(sentence);
+		Expression statement = new Expression();
+		statement = Expression.buildExpression(tokens);		
+		statement.resolve();		
+		
+		String entails = KB.entails(statement);
+		
+		assert(entails == "definitely true");
+		
+		sentence = "(not M_1_4)";
+		tokens = Token.parseInput(sentence);
+		statement = new Expression();
+		statement = Expression.buildExpression(tokens);		
+		statement.resolve();
+		
+		entails = KB.entails(statement);		
+		assert(entails == "definitely false");		
+		
+	}
+	
+	@Test
+	public void testEntailsMulti()	{
+		String sentence = "(and (xor M_1_4 B_3_4) (if M_4_2 (or B_4_3 B_2_2)) (and (not M_3_1) S_4_1) (not B_2_2) (not (or P_4_2 P_3_3 P_2_4)))";
+		ArrayList<Token> tokens = Token.parseInput(sentence);
+		Expression KB = new Expression();
+		KB = Expression.buildExpression(tokens);
+		KB.resolve();
+		
+		sentence = "(or M_1_4 P_4_4)";
+		tokens = Token.parseInput(sentence);
+		Expression statement = new Expression();
+		statement = Expression.buildExpression(tokens);		
+		statement.resolve();	
+		
+		String entails = KB.entails(statement);
+		assert(entails == "definitely true");		
+		
+		
+		sentence = "(and M_1_4 (not P_3_3))";
+		tokens = Token.parseInput(sentence);
+		statement = new Expression();
+		statement = Expression.buildExpression(tokens);		
+		statement.resolve();	
+		
+		entails = KB.entails(statement);
+		assert(entails == "definitely false");
+	}
+	
+	
 }

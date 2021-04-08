@@ -9,7 +9,7 @@ public class Token {
 	
 	public enum Type	{
 		Symbol("[MBPS]_[1-4]_[1-4]"), OpenParentheses("\\("), CloseParentheses("\\)"), 
-		Not("not "), If("if "), Iff("iff "), And("and "), Or("or "), Xor("xor ");
+		Not("not "), If("if "), Iff("iff "), And("and "), Xor("xor "), Or("or ");
 
 		Type(String value){
 			this.value = value;
@@ -39,7 +39,7 @@ public class Token {
 	public static ArrayList<Token> parseInput(String line)	{
 		ArrayList<Token> tokens = new ArrayList<Token>();
 		int startIndex=0;
-		for(int i=1; i<line.length(); i++) {
+		for(int i=1; i<line.length()+1; i++) {
 			
 			for(Type t : Type.values())	{
 				Pattern p = Pattern.compile(t.value);
