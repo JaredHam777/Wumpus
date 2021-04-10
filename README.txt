@@ -14,6 +14,3 @@ The expression is in the form of an abstract syntax tree.
 I then implemented an algorithm to convert any logical expression to CNF form
 Once an expression is in CNF from, it runs the DPLL algorithm to see if an expression
 in CNF form is logically consistent.  We do this for both (KB & statement) and the (KB & -(statement)).
-
-Unfortunately, I ran out of time, and not all of the test cases pass :( I believe my DPLL algorithm
-may have been wrongly implemented.
