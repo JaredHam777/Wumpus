@@ -89,7 +89,7 @@ public class CNFExpression implements Comparable<CNFExpression> {
 		for(CNFExpression e : statements) {
 			ArrayList<CNFSymbol> symbolsToRemove = new ArrayList<CNFSymbol>();
 			for(CNFSymbol s : e.symbols) {
-				if(l.equals(s) && e.symbols.size()>1) {
+				if(l.isEqual(s) && e.symbols.size()>1) {
 					expressionsToRemove.add(e);
 				}
 				if(CNFSymbol.IsCompliment(l, s))	{
@@ -111,7 +111,7 @@ public class CNFExpression implements Comparable<CNFExpression> {
 		for(CNFExpression e : statements)	{
 			
 			for(CNFSymbol s : pures) {
-				if(e.symbols.contains(s))	{					
+				if(s.containedIn(e.symbols))	{					
 					expressionsToRemove.add(e);
 					break;
 				}
@@ -137,7 +137,7 @@ public class CNFExpression implements Comparable<CNFExpression> {
 		for(CNFExpression e : statements) {
 			if(e.symbols.size()==0) {continue;}
 			for(CNFSymbol s : e.symbols) {
-				if(!allLiterals.contains(s))	{
+				if(!s.containedIn(allLiterals))	{
 					allLiterals.add(s);									
 				}
 			}
@@ -153,7 +153,20 @@ public class CNFExpression implements Comparable<CNFExpression> {
 				}
 			}
 		}
-		allLiterals.removeAll(literalsToRemove);
+		for(CNFSymbol s : literalsToRemove) {
+			int ind = -1;
+			for(int i=0; i<allLiterals.size(); i++) {
+				if(allLiterals.get(i).isEqual(s)) {
+					ind=i;
+					break;
+				}
+				
+			}
+			if(ind>=0) {
+				allLiterals.remove(ind);
+			}
+		}
+		//allLiterals.removeAll(literalsToRemove);
 		return allLiterals;
 	}
 	
@@ -161,7 +174,7 @@ public class CNFExpression implements Comparable<CNFExpression> {
 		CNFExpression e = new CNFExpression();
 		for(CNFExpression statement : statements) {
 			if(statement.symbols.size()!=0) {
-				e.symbols.add(statement.symbols.get(0));
+				e.symbols.add(new CNFSymbol(statement.symbols.get(0)));
 				return e;
 			}
 		}
@@ -208,9 +221,11 @@ public class CNFExpression implements Comparable<CNFExpression> {
 
 		if(statements.size()==0) {
 			return true;
-			}
+		}
 		CNFExpression chosenLiteral = chooseLiteral(statements);
 		CNFExpression inverseChosenLiteral = chooseLiteral(statements);
+		
+		//inverseChosenLiteral.symbols.get(0) = new 
 		inverseChosenLiteral.symbols.get(0).isNegated = !inverseChosenLiteral.symbols.get(0).isNegated;
 		
 		for(CNFExpression e : statements) {
@@ -302,7 +317,13 @@ public class CNFExpression implements Comparable<CNFExpression> {
 	
 	public static CNFExpression copyExpression(CNFExpression e)	{
 		CNFExpression returnExp = new CNFExpression();
-		returnExp.symbols.addAll(e.symbols);
+		
+		for(CNFSymbol s : e.symbols) {
+			CNFSymbol s1 = new CNFSymbol(s);
+			returnExp.symbols.add(s1);
+		}
+		//returnExp.symbols.addAll(e.symbols);
+		
 		return returnExp;
 	}
 	
@@ -406,7 +427,7 @@ public class CNFExpression implements Comparable<CNFExpression> {
 		for(int i=0; i<this.symbols.size(); i++)	{
 			CNFSymbol s1 = this.symbols.get(i);
 			CNFSymbol s2 = e.symbols.get(i);
-			if(!(s1.equals(s2))) {return false;}
+			if(!(s1.isEqual(s2))) {return false;}
 		}
 		return true;
 	}
@@ -461,7 +482,8 @@ public class CNFExpression implements Comparable<CNFExpression> {
 		return returnStr;
 	}
 	
-	@Override
+	
+	/*
 	public boolean equals(Object o) {
 		CNFExpression e = (CNFExpression)o;
 		if(this.symbols.size()!=e.symbols.size()) {return false;}
@@ -472,7 +494,7 @@ public class CNFExpression implements Comparable<CNFExpression> {
 			if(!this.symbols.get(i).equals(e.symbols.get(i))) {return false;}
 		}
 		return true;
-	}
+	}*/
 	
 	public static void printList(ArrayList<CNFExpression> list)	{
 		System.out.println("\nstatements:");

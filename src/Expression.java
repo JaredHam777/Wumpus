@@ -109,7 +109,7 @@ public class Expression {
 				this.children.add(notExp);
 			}
 			try	{
-				if(this.children.get(0).children.get(0).symbol.equals(this.children.get(1).children.get(0).symbol) &&
+				if(this.children.get(0).children.get(0).symbol.name.equals(this.children.get(1).children.get(0).symbol.name) &&
 						this.children.get(0).operation == OpType.Not && this.children.get(1).operation == OpType.Not)	{
 					//System.out.println(this.expressionText());
 				}
@@ -159,7 +159,7 @@ public class Expression {
 			for(int j=i+1; j<this.children.size(); j++)	{				
 				Expression e2 = this.children.get(j);
 				if(e2.symbol==null) {continue;}
-				if(e1.symbol.equals(e2.symbol))	{
+				if(e1.symbol.name.equals(e2.symbol.name))	{
 					redundants.add(e1);
 				}				
 			}
@@ -383,7 +383,7 @@ public class Expression {
 		//System.out.println("exp: " + this.expressionText());
 		
 		try {
-			if(this.children.get(0).children.get(0).symbol.equals(this.children.get(1).children.get(0).symbol) && 
+			if(this.children.get(0).children.get(0).symbol.name.equals(this.children.get(1).children.get(0).symbol.name) && 
 					this.operation == OpType.Or && this.children.size()==2 && 
 					this.children.get(0).operation == OpType.Not && 
 					this.children.get(1).operation == OpType.Not)	{
@@ -506,10 +506,15 @@ public class Expression {
 		ArrayList<CNFExpression> statementCNF = CNFExpression.expressionToCNFList(statement);
 		ArrayList<CNFExpression> negatedStatementCNF = CNFExpression.expressionToCNFList(negatedStatement);
 		
-		//System.out.println("knowledge base: ");
-		//CNFExpression.printList(KBCNF);
-		
 		Collections.sort(KBCNF);
+		
+		
+		//System.out.println("knowledge base: ");
+		//System.out.println("");
+		//CNFExpression.printList(KBCNF);
+		//System.out.println("");
+		
+		
 		Collections.sort(statementCNF);
 		Collections.sort(negatedStatementCNF);
 		
@@ -519,7 +524,14 @@ public class Expression {
 		Collections.sort(negatedStatementCNF);
 		KBCNF = CNFExpression.expressionToCNFList(this);
 		//CNFExpression.printList(KBCNF);
-		boolean KBEntailsNegativeStatement = CNFExpression.statementsContradict(statementCNF, KBCNF);	
+		boolean KBEntailsNegativeStatement = CNFExpression.statementsContradict(statementCNF, KBCNF);
+		
+		Collections.sort(KBCNF);
+		//System.out.println("knowledge base: ");
+		//System.out.println("");
+		//CNFExpression.printList(KBCNF);
+		//System.out.println("");
+		
 		
 		if(KBEntailsStatement && !KBEntailsNegativeStatement) {return "definitely true";}
 		if(!KBEntailsStatement && KBEntailsNegativeStatement) {return "definitely false";}

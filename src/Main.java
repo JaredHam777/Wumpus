@@ -42,6 +42,9 @@ public class Main {
 		output = new BufferedWriter(new FileWriter(resultFile));
         output.write(entails);
 		output.close();
+		
+		System.out.println(entails);
+		
 	}
 
 }
