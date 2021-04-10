@@ -46,7 +46,7 @@ public class Token {
 				String stringToMatch = line.substring(startIndex, i);
 				Matcher m = p.matcher(stringToMatch);
 				if(m.find()) {
-					System.out.println("match found: " + m.group());
+				//	System.out.println("match found: " + m.group());
 					tokens.add(new Token(t, m.group()));
 					startIndex=i;
 					break;

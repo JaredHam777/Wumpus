@@ -108,6 +108,12 @@ public class Expression {
 				notExp.operation = OpType.Not;
 				this.children.add(notExp);
 			}
+			try	{
+				if(this.children.get(0).children.get(0).symbol.equals(this.children.get(1).children.get(0).symbol) &&
+						this.children.get(0).operation == OpType.Not && this.children.get(1).operation == OpType.Not)	{
+					//System.out.println(this.expressionText());
+				}
+			} catch(Exception e) {}
 			return true;
 		case Or:			
 			childrenToAdd.addAll(this.children.get(0).children);
@@ -131,9 +137,49 @@ public class Expression {
 		
 	}
 	
+	
+	
 	private Boolean OrExpression()	{
 		if(this.operation != OpType.Or) {return false;}
 		
+		boolean allsymbols = true;
+		for(Expression child : this.children) {
+			if(!(child.symbol!=null || (child.operation==OpType.Not) && child.children.get(0).symbol!=null))	{
+				allsymbols = false;
+				break;
+			}
+		}
+		if(allsymbols) {return false;}
+		
+		ArrayList<Expression> redundants = new ArrayList<Expression>();
+		
+		for(int i=0; i<this.children.size()-1; i++) {
+			Expression e1 = this.children.get(i);
+			if(e1.symbol==null) {continue;}
+			for(int j=i+1; j<this.children.size(); j++)	{				
+				Expression e2 = this.children.get(j);
+				if(e2.symbol==null) {continue;}
+				if(e1.symbol.equals(e2.symbol))	{
+					redundants.add(e1);
+				}				
+			}
+		}
+		
+		//this.children.removeAll(redundants);
+		for(Expression r : redundants)	{
+			this.children.remove(this.children.indexOf(r));
+		}
+		
+		if(this.children.size()==0) {
+			this.children.add(redundants.get(0));		
+		}
+		
+		if(this.children.size()==1) {
+			if(this.children.get(0).symbol!=null) {this.symbol = this.children.get(0).symbol; this.operation = null; this.children = null; return true;}
+			this.operation = this.children.get(0).operation;
+			this.children = this.children.get(0).children;			
+			return true;
+		}
 		//find an And child expression and assign any other expression to DExp:
 		Expression andExp = null;
 		Expression DExp = null;			
@@ -149,20 +195,37 @@ public class Expression {
 		//If we didn't find an And expression among the children, then this expression is already resolved
 		if(andExp==null) {return false;}
 		
-		this.operation = OpType.And;
+		
+		
+		
 		ArrayList<Expression> newChildren = new ArrayList<Expression>();
+		Expression newExp = new Expression();
+		newExp.operation = OpType.And;
 		for(int i=0; i<andExp.children.size(); i++)	{
 			Expression child = new Expression();
 			child.operation = OpType.Or;
 			child.children = new ArrayList<Expression>();
-			child.children.add(DExp);
+			child.children.add(DExp);			
 			child.children.add(andExp.children.get(i));
+			//System.out.println("dexp and andexp(i): " + child);
 			newChildren.add(child);
 		}
+		newExp.children = newChildren;
+		
 		
 		this.children.remove(andExp);
-		this.children.remove(DExp);			
-		this.children.addAll(newChildren);	
+		this.children.remove(DExp);	
+		newExp.AndExpression();
+		if(this.children.size()==0) {
+			this.children = newExp.children;
+			this.operation = OpType.And;
+			return true;
+		}
+		this.children.add(newExp);
+		
+		while(OrExpression());
+		
+		this.operation = OpType.And;
 		return true;
 	}
 	
@@ -252,34 +315,83 @@ public class Expression {
 	
 	private Boolean XorExpression()	{
 		if(this.operation!=OpType.Xor) {return false;}
+		Expression andExp = new Expression();
+		andExp.operation = OpType.And;
+		andExp.children = new ArrayList<Expression>();
 		
-		ArrayList<Expression> andStatements = new ArrayList<Expression>();
-		for(int i=0; i<this.children.size(); i++)	{
-			Expression andStatement = new Expression();
-			andStatement.operation = OpType.And;
-			andStatement.children = new ArrayList<Expression>();
-			Expression notExp = new Expression();
-			notExp.children = new ArrayList<Expression>();
-			notExp.operation = OpType.Not;
-			notExp.children.add(this.children.get(i));
-			for(int j=0; j<this.children.size(); j++)	{
-				if(j==i) {
-					andStatement.children.add(notExp);
-					}	else	{
-					andStatement.children.add(this.children.get(j));
-				}
-			}
-			andStatements.add(andStatement);
+		//populate truth table
+		ArrayList<String> truthTable = new ArrayList<String>();
+		String leadingZeros = "";
+		for(int i=0; i<this.children.size(); i++) {
+			leadingZeros += "0";
 		}
-		this.operation = OpType.Or;
-		this.children = new ArrayList<Expression>();
-		this.children.addAll(andStatements);
+		for(int i=0; i<Math.pow(this.children.size(), 2); i++)	{
+			String str = leadingZeros + Integer.toBinaryString(i);
+			str = str.substring(str.length() - this.children.size(), str.length());
+			truthTable.add(str);
+		}
+		
+		//add only non-xor expressions:
+		for(int i=0; i<truthTable.size(); i++) {
+			int count = 0;
+			for(char c : truthTable.get(i).toCharArray())	{
+				if(c=='1') {count++;}
+			}
+			if(count!=1) {
+				//add this as an or exp:
+				Expression orExp = new Expression();
+				orExp.operation = OpType.Or;
+				orExp.children = new ArrayList<Expression>();
+				for(int j=0; j<truthTable.get(i).length(); j++)	{
+					char c = truthTable.get(i).charAt(j);
+					Expression child = new Expression();
+					if(c=='0') {
+						//positive child:
+						child.copyExpression(this.children.get(j));
+					}	else	{
+						Expression gChild = new Expression();
+						gChild.copyExpression(this.children.get(j));
+						child.operation = OpType.Not;
+						child.children = new ArrayList<Expression>();
+						child.children.add(gChild);
+					}
+					orExp.children.add(child);
+				}
+				andExp.children.add(orExp);
+			}
+		}
+		
+		//now this must become our and Exp:
+		this.copyExpression(andExp);
 		return true;
+	}
+	
+	public void copyExpression(Expression e) {
+		if(e.symbol!=null) {
+			this.symbol = e.symbol;
+			this.children=null;
+			this.operation = null;
+		}	else	{
+			this.children = new ArrayList<Expression>();
+			this.children = e.children;
+			this.operation = e.operation;
+		}
 	}
 	
 	public Boolean resolve() {
 		if(this.children==null) {return false;}
-		System.out.println("exp: " + this.expressionText());
+		//System.out.println("exp: " + this.expressionText());
+		
+		try {
+			if(this.children.get(0).children.get(0).symbol.equals(this.children.get(1).children.get(0).symbol) && 
+					this.operation == OpType.Or && this.children.size()==2 && 
+					this.children.get(0).operation == OpType.Not && 
+					this.children.get(1).operation == OpType.Not)	{
+				//System.out.println(this.expressionText());
+				//System.out.println(this.expressionText());
+			}
+		}catch(Exception e) {}
+		
 		Boolean resolveStepOccurred = 
 		IfExpression() ||
 		IffExpression() ||
@@ -287,7 +399,8 @@ public class Expression {
 		AndExpression() ||
 		Associative() ||
 		NotExpression() ||
-		OrExpression();				
+		OrExpression();		
+		
 		if(this.children==null) {return resolveStepOccurred;}	
 		if(resolveStepOccurred)	{
 			this.resolve();
@@ -364,21 +477,48 @@ public class Expression {
 		
 	}
 	
+	public Expression(Expression e) {
+		
+		if(e.operation!=null) {
+			this.operation = e.operation;
+			this.children = new ArrayList<Expression>();
+			for(Expression child : e.children) {
+				this.children.add(new Expression(child));
+			}
+		}
+		
+		if(e.symbol!=null) {
+			this.symbol = new Symbol(e.symbol.name);
+					
+		}
+	}
+	
 	public String expressionEntails(Expression statement) throws Exception {
 		Expression negatedStatement = new Expression();
 		negatedStatement.operation = OpType.Not;
 		negatedStatement.children = new ArrayList<Expression>();
-		negatedStatement.children.add(statement);
+		
+		negatedStatement.children.add(new Expression(statement));
 		negatedStatement.resolve();
+		statement.resolve();
 		
 		ArrayList<CNFExpression> KBCNF = CNFExpression.expressionToCNFList(this);
 		ArrayList<CNFExpression> statementCNF = CNFExpression.expressionToCNFList(statement);
 		ArrayList<CNFExpression> negatedStatementCNF = CNFExpression.expressionToCNFList(negatedStatement);
 		
-		System.out.println("knowledge base: ");
-		CNFExpression.printList(KBCNF);
+		//System.out.println("knowledge base: ");
+		//CNFExpression.printList(KBCNF);
+		
+		Collections.sort(KBCNF);
+		Collections.sort(statementCNF);
+		Collections.sort(negatedStatementCNF);
 		
 		boolean KBEntailsStatement = CNFExpression.statementsContradict(negatedStatementCNF, KBCNF);
+		Collections.sort(KBCNF);
+		Collections.sort(statementCNF);
+		Collections.sort(negatedStatementCNF);
+		KBCNF = CNFExpression.expressionToCNFList(this);
+		//CNFExpression.printList(KBCNF);
 		boolean KBEntailsNegativeStatement = CNFExpression.statementsContradict(statementCNF, KBCNF);	
 		
 		if(KBEntailsStatement && !KBEntailsNegativeStatement) {return "definitely true";}
@@ -416,13 +556,13 @@ public class Expression {
 				if(!Expression.listContains(inverseStatement.children, child)) {
 					newDerivedExpressions.add(child);
 				}	else	{
-					System.out.println("is this unreachable?");
+					//System.out.println("is this unreachable?");
 				}
 			}
 			
 			if(newDerivedExpressions.size()>0) {
 				inverseStatement.children.addAll(newDerivedExpressions);
-				System.out.println("new statement: " + inverseStatement.expressionText());
+				//System.out.println("new statement: " + inverseStatement.expressionText());
 				if(inverseStatement.isFalseTautology()) {
 					return "definitely true";
 				}
@@ -446,13 +586,13 @@ public class Expression {
 				if(!Expression.listContains(statement.children, child)) {
 					newDerivedExpressions.add(child);
 				}	else	{
-					System.out.println("is this unreachable?");
+					//System.out.println("is this unreachable?");
 				}
 			}
 			
 			if(newDerivedExpressions.size()>0) {
 				statement.children.addAll(newDerivedExpressions);
-				System.out.println("new statement: " + inverseStatement.expressionText());
+				//System.out.println("new statement: " + inverseStatement.expressionText());
 				if(statement.isFalseTautology()) {
 					return "definitely false";
 				}
@@ -622,6 +762,11 @@ public class Expression {
 			if(child.isEqualTo(e)) {return true;}
 		}
 		return false;
+	}
+	
+	@Override 
+	public String toString()	{
+		return this.expressionText();
 	}
 	
 	public boolean isEqualTo(Object o) {

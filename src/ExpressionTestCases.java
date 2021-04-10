@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import junit.framework.TestCase;
 
+
 public class ExpressionTestCases extends TestCase {
 	
 	
@@ -165,36 +166,8 @@ public class ExpressionTestCases extends TestCase {
 		
 	}
 	
-	@Test
-	public void testCombineExpressions()	{
-		String sentence = "M_1_1";
-		ArrayList<Token> tokens = Token.parseInput(sentence);
-		Expression exp1 = new Expression();
-		exp1 = Expression.buildExpression(tokens);
-		exp1.resolve();
-		
-		sentence = "(or (not M_1_1) M_1_2)";
-		tokens = Token.parseInput(sentence);
-		Expression exp2 = new Expression();
-		exp2 = Expression.buildExpression(tokens);
-		System.out.println("Combining...");
-		exp2.resolve();
-		
-		
-		Expression exp3 = exp1.attemptCombine(exp2);
-		
-		assert(exp3.symbol!=null && exp3.symbol.name.equals("M_1_2"));
-		
-		sentence = "(or M_1_3 M_1_1)";
-		tokens = Token.parseInput(sentence);
-		exp1 = new Expression();
-		exp1 = Expression.buildExpression(tokens);
-		exp1.resolve();
-		
-		exp3 = exp1.attemptCombine(exp2);
-		assert(exp3.operation==Expression.OpType.Or && exp3.children.size()==2);
-	}
 	
+	/*
 	@Test
 	public void testEntails()	{
 		String sentence = "(and M_1_1 (or M_1_2 M_1_1 M_1_3) (or (not M_1_1) M_1_4))";
@@ -222,10 +195,51 @@ public class ExpressionTestCases extends TestCase {
 		//entails = KB.entails(statement);		
 		//assert(entails == "definitely false");		
 		
-	}
+	}*/
 	
-
+	/*
+	@Test	
+	public void testXorLarge() throws Exception	{
+		String sentence = "(xor M_1_1 M_1_2 M_1_3)";
+		ArrayList<Token> tokens = Token.parseInput(sentence);
+		Expression exp1 = new Expression();
+		exp1 = Expression.buildExpression(tokens);
+		exp1.resolve();
+		
+		sentence = "M_1_1";
+		tokens = Token.parseInput(sentence);
+		Expression statement = new Expression();
+		statement = Expression.buildExpression(tokens);		
+		statement.resolve();	
+		
+		String entails = exp1.expressionEntails(statement);
+		
+		sentence = "(xor B_3_4 M_1_4)";
+		tokens = Token.parseInput(sentence);
+		exp1 = new Expression();
+		exp1 = Expression.buildExpression(tokens);
+		exp1.resolve();
 	
+	}*/
+	/*
+	@Test
+	
+	public void testDistOrLarge() throws Exception	{
+		String sentence = "(or (and M_1_1 M_1_2 M_1_3) (and M_1_4 M_2_1 M_2_2) (and M_2_3 M_2_4))";
+		ArrayList<Token> tokens = Token.parseInput(sentence);
+		Expression exp1 = new Expression();
+		exp1 = Expression.buildExpression(tokens);
+		exp1.resolve();
+		
+		sentence = "M_1_1";
+		tokens = Token.parseInput(sentence);
+		Expression statement = new Expression();
+		statement = Expression.buildExpression(tokens);		
+		statement.resolve();	
+		
+		String entails = exp1.expressionEntails(statement);
+	
+	}*/
 	
 	@Test
 	public void testWumpusRules1() throws Exception	{
@@ -236,11 +250,25 @@ public class ExpressionTestCases extends TestCase {
 		Expression KB = Expression.combineAnd(wumpusRules, additionalKnowledge);
 		KB.resolve();
 		
-		Expression statement = Expression.importExpressionFromFile("data/statement-defi-true-1.txt");
 		
+		Expression statement = Expression.importExpressionFromFile("data/statement-defi-true-1.txt");		
 		String entails = KB.expressionEntails(statement);
 		assert(entails.equals("definitely true"));
 		
+		statement = Expression.importExpressionFromFile("data/statement-defi-false-1.txt");
+		entails = KB.expressionEntails(statement);
+		assert(entails.equals("definitely false"));
+		
+		
+		statement = Expression.importExpressionFromFile("data/statement-possibly-true-false-1.txt");
+		entails = KB.expressionEntails(statement);
+		assert(entails.equals("possibly true, possibly false"));
+		
+		statement = Expression.importExpressionFromFile("data/statement-both-true-false-1.txt");
+		entails = KB.expressionEntails(statement);
+		assert(entails.equals("both true and false"));
 	}
+	
+
 	
 }

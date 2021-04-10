@@ -1,5 +1,8 @@
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,46 +18,30 @@ public class Main {
 	public static int numberOfSymbols;
 	public static int numberOfCombinations;
 	
-	public static void populateSymbols(int hashVal) {
-		String binaryStr = "00000000000000000000000000000000" + Integer.toBinaryString(hashVal);
-		binaryStr = binaryStr.substring(binaryStr.length()-numberOfSymbols, binaryStr.length());
-		System.out.println("evaluating with truth column: " + binaryStr);
-		
-		int i=0;
-		for(Symbol s : symbols.values()) {
-			s.value = Integer.parseInt(binaryStr.substring(i,i+1)) != 0;
-			System.out.println(s.name + ": " + s.value);
-			i++;
-		}
-		
-	}
+
 	
-	public static void main(String[] args) throws FileNotFoundException {
+	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
-		File file = new File("data/" + statementFile);
-		Scanner sc = new Scanner(file);			
-		String line;		
+		String[] strArgs;
+		Scanner sc = new Scanner(System.in);
+		System.out.print(">");
+		strArgs = sc.nextLine().split(" ");
 		
+		Expression wumpusRules = Expression.importExpressionFromFile("data/wumpus_rules.txt");
+		wumpusRules.resolve();
+		Expression additionalKnowledge = Expression.importExpressionFromFile(strArgs[2]);
+		additionalKnowledge.resolve();
+		Expression KB = Expression.combineAnd(wumpusRules, additionalKnowledge);
+		KB.resolve();
+		Expression statement = Expression.importExpressionFromFile(strArgs[3]);
 		
+		String entails = KB.expressionEntails(statement);
 		
-		while(sc.hasNextLine())	{
-			line = sc.nextLine();
-			statementTokens = Token.parseInput(line);			
-		}
-		statement = Expression.buildExpression(statementTokens);		
-		
-		numberOfSymbols = symbols.size(); 
-		numberOfCombinations = (int) (Math.pow(numberOfSymbols, 2)-1);
-		
-	
-		
-		for(int i=0; i<numberOfCombinations; i++) {
-			populateSymbols(i);
-			System.out.println("statement is " + statement.solve());
-		}
-		
-		statement.resolve();
-		
+		BufferedWriter output = null;
+		File resultFile = new File("result.txt");
+		output = new BufferedWriter(new FileWriter(resultFile));
+        output.write(entails);
+		output.close();
 	}
 
 }
